@@ -46,11 +46,7 @@ client/yarn-error.log*
 docker-compose.override.yml
 .dockerignore
 
-# Logs and databases created by Docker volumes
-# These are typically outside the repo or within named volumes
-# but including if they accidentally map to repo
-# For example, if you had a volume mapping a local directory for postgres data:
-# /pgdata/
+
 
 # -------------------------
 # Other generated files

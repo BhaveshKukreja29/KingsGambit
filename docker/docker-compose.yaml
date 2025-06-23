@@ -2,51 +2,52 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:13-alpine
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+    image: postgres:15-alpine
+    container_name: kingsgambit_db
     environment:
-      POSTGRES_DB: your_db_name
-      POSTGRES_USER: your_db_user
-      POSTGRES_PASSWORD: your_db_password
-    restart: unless-stopped
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:6-alpine
-    restart: unless-stopped
+    image: redis:7-alpine
+    container_name: kingsgambit_redis
+    ports:
+      - "6379:6379"
 
   backend:
     build:
-      context: ./server
+      context: ../server # Correct path: go up one level, then into 'server'
       dockerfile: Dockerfile.dev
-    command: python manage.py runserver 0.0.0.0:8000
+    container_name: kingsgambit_backend
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && daphne kingsgambit_backend.asgi:application -b 0.0.0.0 -p 8000"
     volumes:
-      - ./server:/app
+      - ../server:/app
     ports:
       - "8000:8000"
-    depends_on:
-      - db
-      - redis
     environment:
-      DATABASE_URL: postgres://your_db_user:your_db_password@db:5432/your_db_name
-      REDIS_URL: redis://redis:6379/0
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./client
-      dockerfile: Dockerfile.dev
-    command: npm run dev
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - DJANGO_SETTINGS_MODULE=kingsgambit_backend.settings
     depends_on:
-      - backend
-    environment:
-      VITE_API_URL: http://localhost:8000 
-    restart: unless-stopped
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
-  pgdata:
+  db_data:
