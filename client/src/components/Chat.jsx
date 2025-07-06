@@ -1,43 +1,70 @@
 import React, { useEffect, useRef } from 'react';
-import io from 'socket.io-client';
-import './App.css';
+//import './App.css'; 
 
-const Chat = ({ roomId, playerName }) => {
-  const socket = useRef(io());
-  const chatInput = useRef(null);
-  const chatMessages = useRef(null);
+const Chat = ({ roomId, playerName }) => { 
+  const socket = useRef(null); 
+  const chatInput = useRef(null); 
+  const chatMessages = useRef(null); 
 
   useEffect(() => {
-    const addMessage = (message, isSent) => {
-      const div = document.createElement('div');
-      div.className = `message ${isSent ? 'sent' : 'received'}`;
-      div.textContent = message;
-      chatMessages.current.appendChild(div);
-      chatMessages.current.scrollTop = chatMessages.current.scrollHeight;
+    socket.current = new WebSocket(`ws://localhost:8000/ws/match/${roomId}/`);
+
+    socket.current.onopen = () => {
+      console.log('Chat WebSocket connection opened.');
     };
 
-    socket.current.on('chat_message', ({ message, sender }) => {
-      if (sender !== playerName) addMessage(`${sender}: ${message}`, false);
-    });
-
-    const handleSend = () => {
-      const msg = chatInput.current.value.trim();
-      if (msg) {
-        socket.current.emit('chat_message', {
-          message: msg,
-          room: roomId,
-          sender: playerName
-        });
-        addMessage(msg, true);
-        chatInput.current.value = '';
+    socket.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'chat_message') {
+        if (data.sender !== playerName) { 
+          addMessage(`${data.sender}: ${data.message}`, false); 
+        }
       }
     };
 
-    document.getElementById('sendMessage').addEventListener('click', handleSend);
-    return () => socket.current.disconnect();
-  }, [roomId, playerName]);
+    socket.current.onclose = () => {
+      console.log('Chat WebSocket connection closed.');
+    };
 
-  return (
+    socket.current.onerror = (error) => {
+      console.error('Chat WebSocket error:', error);
+    };
+
+    const addMessage = (message, isSent) => { 
+      const div = document.createElement('div'); 
+      div.className = `message ${isSent ? 'sent' : 'received'}`; 
+      div.textContent = message; 
+      chatMessages.current.appendChild(div); 
+      chatMessages.current.scrollTop = chatMessages.current.scrollHeight; 
+    };
+
+    const handleSend = () => { 
+      const msg = chatInput.current.value.trim(); 
+      if (msg) { 
+        if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+          socket.current.send(JSON.stringify({
+            type: 'chat_message', 
+            message: msg, 
+            room: roomId, 
+            sender: playerName 
+          }));
+        }
+        addMessage(msg, true); 
+        chatInput.current.value = ''; 
+      }
+    };
+
+    document.getElementById('sendMessage').addEventListener('click', handleSend); // cite: 170
+
+    return () => { 
+      document.getElementById('sendMessage').removeEventListener('click', handleSend);
+      if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+        socket.current.close(); 
+      }
+    };
+  }, [roomId, playerName]); 
+
+  return ( 
     <div className="chat-section">
       <div className="chat-messages" id="chatMessages" ref={chatMessages}></div>
       <div className="chat-input-container">

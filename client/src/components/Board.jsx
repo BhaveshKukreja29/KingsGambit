@@ -1,69 +1,100 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
-import io from 'socket.io-client';
-import './App.css';
+//import './App.css';
 
-const Board = () => {
-  const [game] = useState(new Chess());
-  const [fen, setFen] = useState('start');
-  const socket = useRef(null);
-  const [status, setStatus] = useState('');
-  const moveHistoryRef = useRef(null);
-
-  const playerColor = window.PLAYER_COLOR;
-  const roomId = window.ROOM_ID;
+const Board = ({ roomId, playerColor }) => {
+  const [game] = useState(new Chess()); 
+  const [fen, setFen] = useState('start'); 
+  const socket = useRef(null); 
+  const [status, setStatus] = useState(''); 
+  const moveHistoryRef = useRef(null); 
 
   useEffect(() => {
-    socket.current = io();
+    if (!roomId) {
+      return;
+    } 
 
-    socket.current.on('move', ({ move }) => {
-      game.move(move);
-      setFen(game.fen());
-      appendMove(move.san);
-      updateStatus();
-    });
+    socket.current = new WebSocket(`ws://localhost:8000/ws/match/${roomId}/`);
 
-    updateStatus();
+    socket.current.onopen = () => {
+      console.log('WebSocket connection opened.');
+    };
 
-    return () => socket.current.disconnect();
-  }, []);
+    socket.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'move_made') {
+        const move = {
+          from: data.from,
+          to: data.to,
+        }
+        game.move(move); 
+        setFen(game.fen()); 
+        appendMove(data.move.san); 
+        updateStatus(); 
+      }
+    };
 
-  const appendMove = (san) => {
-    const div = document.createElement('div');
-    div.textContent = san;
-    moveHistoryRef.current.appendChild(div);
+    socket.current.onclose = () => {
+      console.log('WebSocket connection closed.');
+    };
+
+    socket.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    updateStatus(); 
+
+    return () => {
+      if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+        socket.current.close();
+      }
+    };
+  }, [roomId]);
+
+  const appendMove = (san) => { 
+    const div = document.createElement('div'); 
+    div.textContent = san; 
+    moveHistoryRef.current.appendChild(div); 
   };
 
-  const updateStatus = () => {
-    let statusText = '';
+  const updateStatus = () => { 
+    let statusText = ''; 
     const moveColor = game.turn() === 'b' ? 'Black' : 'White';
 
     if (game.isCheckmate()) {
       statusText = `Game over, ${moveColor} is in checkmate.`;
-    } else if (game.isDraw()) {
-      statusText = 'Game over, drawn position';
-    } else {
-      statusText = `${moveColor}'s turn`;
+    } else if (game.isDraw()) { 
+      statusText = 'Game over, drawn position'; 
+    } else { 
+      statusText = `${moveColor}'s turn`; 
     }
 
-    setStatus(statusText);
+    setStatus(statusText); 
   };
 
-  const onDrop = (sourceSquare, targetSquare) => {
-    const move = game.move({
-      from: sourceSquare,
-      to: targetSquare,
-      promotion: 'q'
+  const onDrop = (sourceSquare, targetSquare) => { 
+    const move = game.move({ 
+      from: sourceSquare, 
+      to: targetSquare, 
     });
 
-    if (!move) return false;
+    if (!move) return false; 
 
-    setFen(game.fen());
-    socket.current.emit('move', { move, room: roomId });
+    setFen(game.fen()); 
+    // Send move to Django Channels backend
+    if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+      socket.current.send(JSON.stringify({
+        type: 'move', 
+        from: sourceSquare,
+        to: targetSquare,
+        fen: game.fen(),
+        move: move 
+      }));
+    }
     appendMove(move.san);
-    updateStatus();
-    return true;
+    updateStatus(); 
+    return true; 
   };
 
   return (

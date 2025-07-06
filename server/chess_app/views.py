@@ -3,6 +3,7 @@ import uuid
 from .consumers import Player, Game, games
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django.middleware.csrf import get_token
 
 def create_room(request):
     if request.method == 'POST':
@@ -73,17 +74,6 @@ def join_game(request):
         request.session['player_name'] = player_name
         request.session.save()
 
-        # Notify the other player
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f'game_{room_id}',
-            {
-                'type': 'opponent_joined',
-                'black_player_name': player_name,
-                'game_status': 'playing'
-            }
-        )
-
         return JsonResponse({
             'message': 'Joined room successfully',
             'room_id': room_id,
@@ -125,3 +115,7 @@ def game_data(request, room_id):
         'initial_position': game.current_position,
         'moves_history': game.moves
     })
+
+def get_csrf_token(request):
+    return JsonResponse({'csrfToken': get_token(request)})
+

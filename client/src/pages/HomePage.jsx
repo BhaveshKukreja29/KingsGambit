@@ -1,26 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './HomePage.css'; // Assuming you have this CSS file
+import './HomePage.css';
 
 const HomePage = () => {
-
   const [createRoomName, setCreateRoomName] = useState('');
   const [joinRoomId, setJoinRoomId] = useState('');
   const [joinRoomName, setJoinRoomName] = useState('');
   const navigate = useNavigate();
+  const [csrfToken, setCsrfToken] = useState(null); 
 
   const apiClient = axios.create({
-      baseURL: 'http://localhost:8000', 
-      withCredentials: true // Ensures session cookies are sent
+      baseURL: 'http://localhost:8000',
+      withCredentials: true
   });
+
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await apiClient.get('/get-csrf-token/');
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error('Error fetching CSRF token:', error);
+      }
+    };
+    fetchCsrfToken();
+  }, []); 
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
+    if (!csrfToken) {
+      console.error("CSRF token not available.");
+      return;
+    }
     try {
       const response = await apiClient.post('/create-room/', new URLSearchParams({
         'player_name': createRoomName
-      }));
+      }), {
+        headers: {
+          'X-CSRFToken': csrfToken 
+        }
+      });
       if (response.data && response.data.room_id) {
         navigate(`/match/${response.data.room_id}`);
       }
@@ -31,11 +51,19 @@ const HomePage = () => {
 
   const handleJoinRoom = async (e) => {
     e.preventDefault();
+    if (!csrfToken) {
+      console.error("CSRF token not available.");
+      return;
+    }
     try {
       const response = await apiClient.post('/join-game/', new URLSearchParams({
         'room_id': joinRoomId,
         'player_name': joinRoomName
-      }));
+      }), {
+        headers: {
+          'X-CSRFToken': csrfToken 
+        }
+      });
       if (response.data && response.data.room_id) {
         navigate(`/match/${response.data.room_id}`);
       }
@@ -52,7 +80,7 @@ const HomePage = () => {
               <input
                   type="text"
                   placeholder="Enter your name"
-                  value={createRoomName} // Corrected: Was 'playerName'
+                  value={createRoomName}
                   onChange={(e) => setCreateRoomName(e.target.value)}
                   required
                   className="input-field"
@@ -66,7 +94,7 @@ const HomePage = () => {
                   <input
                       type="text"
                       placeholder="Enter your name"
-                      value={joinRoomName} // Corrected: Was 'createRoomName'
+                      value={joinRoomName}
                       onChange={(e) => setJoinRoomName(e.target.value)}
                       required
                       className="input-field"
@@ -74,7 +102,7 @@ const HomePage = () => {
                   <input
                       type="text"
                       placeholder="Enter room ID"
-                      value={joinRoomId} // Corrected: Was 'roomId'
+                      value={joinRoomId}
                       onChange={(e) => setJoinRoomId(e.target.value)}
                       required
                       className="input-field"
