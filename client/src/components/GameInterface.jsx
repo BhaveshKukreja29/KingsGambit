@@ -5,7 +5,6 @@ import VideoCall from './VideoCall';
 import { Chess } from 'chess.js';
 
 const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialOpponentName, waiting }) => {
-  // State Management
   const [isWaiting, setIsWaiting] = useState(waiting);
   const [opponentName, setOpponentName] = useState(initialOpponentName);
   const [game, setGame] = useState(new Chess());
@@ -17,44 +16,30 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
 
   const socket = useRef(null);
 
-  // --- WebSocket Connection Management ---
   useEffect(() => {
     if (!roomId) return;
 
-    // Establish a single WebSocket connection
     socket.current = new WebSocket(`ws://localhost:8000/ws/match/${roomId}/`);
 
-    socket.current.onopen = () => {
-      console.log('WebSocket connection established.');
-      updateStatus();
-    };
-
-    socket.current.onclose = () => {
-      console.log('WebSocket connection closed.');
-      setStatus('Connection Lost. Please refresh.');
-    };
-
+    socket.current.onopen = () => console.log('WebSocket connection established.');
+    socket.current.onclose = () => setStatus('Connection Lost. Please refresh.');
     socket.current.onerror = (error) => {
       console.error('WebSocket Error:', error);
       setStatus('Connection Error. Please refresh.');
     };
 
-    // Central message handler
     socket.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
-
       switch (data.type) {
         case 'opponent_joined':
           setIsWaiting(false);
           setOpponentName(playerColor === 'white' ? data.black_player_name : data.white_player_name);
-          updateStatus();
           break;
         case 'move_made':
           const move = game.move({ from: data.from, to: data.to, promotion: 'q' });
           if (move) {
             setFen(game.fen());
             setMoveHistory(prev => [...prev, move.san]);
-            updateStatus();
           }
           break;
         case 'chat_message':
@@ -72,24 +57,20 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
       }
     };
 
-    // Cleanup on component unmount
     return () => {
       if (socket.current) {
         socket.current.close();
       }
     };
-  }, [roomId, playerName, playerColor, game]); // Re-run if essential props change
+  }, [roomId, playerName, playerColor, game]);
 
-  // --- Game Logic and Status ---
   const updateStatus = useCallback(() => {
     if (isWaiting) {
       setStatus('Waiting for opponent to join...');
       return;
     }
-
     let statusText = '';
     const moveColor = game.turn() === 'b' ? 'Black' : 'White';
-
     if (game.isCheckmate()) {
       statusText = `Checkmate! ${moveColor} loses.`;
     } else if (game.isDraw()) {
@@ -107,62 +88,46 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
     updateStatus();
   }, [isWaiting, fen, updateStatus]);
 
-
-  // --- Child Component Callbacks (Functions passed as props) ---
-
-  const sendSocketMessage = (data) => {
+  // WRAP THIS FUNCTION IN useCallback
+  const sendSocketMessage = useCallback((data) => {
     if (socket.current && socket.current.readyState === WebSocket.OPEN) {
       socket.current.send(JSON.stringify(data));
     }
-  };
+  }, []); // Empty dependency array means this function is stable
 
   const handlePieceDrop = (sourceSquare, targetSquare) => {
     const move = game.move({ from: sourceSquare, to: targetSquare, promotion: 'q' });
-    if (move === null) return false; 
+    if (move === null) return false;
 
-    const newFen = game.fen(); 
-
+    const newFen = game.fen();
     setFen(newFen);
     setMoveHistory(prev => [...prev, move.san]);
-    updateStatus();
-
-    sendSocketMessage({
-      type: 'move',
-      from: sourceSquare,
-      to: targetSquare,
-      fen: newFen,      
-      move: move,      
-    });
-
+    sendSocketMessage({ type: 'move', from: sourceSquare, to: targetSquare, fen: newFen, move: move });
     return true;
   };
 
-
   const handleSendMessage = (message) => {
     setChatMessages(prev => [...prev, { sender: playerName, message, isSent: true }]);
-    sendSocketMessage({
-      type: 'chat_message',
-      message: message,
-      sender: playerName,
-    });
+    sendSocketMessage({ type: 'chat_message', message: message, sender: playerName });
   };
   
-  const handlePeerOpen = (peerId) => {
-     sendSocketMessage({
+  // WRAP THIS FUNCTION IN useCallback TO STOP THE INFINITE LOOP
+  const handlePeerOpen = useCallback((peerId) => {
+    sendSocketMessage({
       type: 'video_signal',
       peerId: peerId,
       sender: playerName,
     });
-  };
+  }, [sendSocketMessage, playerName]); // Add dependencies
 
   return (
     <div className="game-container">
       <div className="moves-section">
         <h3>Move History</h3>
         <div id="moveHistory">
-            {moveHistory.map((move, index) => (
-                <div key={index}>{index % 2 === 0 ? `${index/2 + 1}. ` : ''}{move}</div>
-            ))}
+          {moveHistory.map((move, index) => (
+            <div key={index}>{index % 2 === 0 ? `${Math.floor(index / 2) + 1}. ` : ''}{move}</div>
+          ))}
         </div>
         <div id="gameInfo">
           <p>Room ID: <strong>{roomId}</strong></p>
@@ -171,8 +136,8 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
       </div>
       
       <div className="board-section">
-        <Board 
-          fen={fen} 
+        <Board
+          fen={fen}
           onPieceDrop={handlePieceDrop}
           playerColor={playerColor}
           game={game}
@@ -181,13 +146,13 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
       </div>
       
       <div className="right-section">
-        <VideoCall 
-            onPeerOpen={handlePeerOpen}
-            opponentPeerId={opponentPeerId}
+        <VideoCall
+          onPeerOpen={handlePeerOpen}
+          opponentPeerId={opponentPeerId}
         />
-        <Chat 
-            messages={chatMessages} 
-            onSendMessage={handleSendMessage} 
+        <Chat
+          messages={chatMessages}
+          onSendMessage={handleSendMessage}
         />
       </div>
     </div>

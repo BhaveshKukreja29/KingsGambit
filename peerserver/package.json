@@ -1,0 +1,12 @@
+{
+  "name": "kingsgambit-peerserver",
+  "version": "1.0.0",
+  "description": "PeerJS server for King's Gambit",
+  "main": "index.js",
+  "scripts": {
+    "start": "peerjs --port 9000 --path /"
+  },
+  "dependencies": {
+    "peer": "^1.0.2"
+  }
+}
