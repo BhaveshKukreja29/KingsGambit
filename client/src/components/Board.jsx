@@ -97,6 +97,15 @@ const Board = ({ roomId, playerColor }) => {
     return true; 
   };
 
+  const isDraggalbe = ({ piece }) => {
+    const isMyTurn = (game.turn() === 'w' && playerColor === 'white') || 
+                      (game.turn() === 'b' && playerColor === 'black');
+  
+    const isMyPiece = piece.startsWith(playerColor.charAt(0));
+
+    return isMyTurn && isMyPiece;
+  }
+
   return (
     <div className="board-section">
       <div className="status">
@@ -107,6 +116,8 @@ const Board = ({ roomId, playerColor }) => {
         position={fen}
         onPieceDrop={onDrop}
         boardOrientation={playerColor}
+        isDraggablePiece={isDraggalbe}
+        areArrowsAllowed={true}
       />
     </div>
   );
