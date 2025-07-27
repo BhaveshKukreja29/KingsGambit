@@ -1,8 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 import uuid
-from asgiref.sync import sync_to_async
-from channels.db import database_sync_to_async
 
 class Player:
     def __init__(self, id, name):
@@ -32,7 +30,6 @@ games = {}
 
 class ChessConsumer(AsyncWebsocketConsumer):
     
-    @database_sync_to_async
     def get_session_data(self):
         return self.scope['session'].get('player_id'), self.scope['session'].get('player_name')
 
@@ -40,7 +37,7 @@ class ChessConsumer(AsyncWebsocketConsumer):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'game_{self.room_id}'
 
-        player_id, player_name = await self.get_session_data()
+        player_id, player_name = self.get_session_data()
 
         if not player_id or self.room_id not in games:
             await self.close()
@@ -79,7 +76,6 @@ class ChessConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
     
-    @database_sync_to_async
     def get_player_name_from_session(self):
         return self.scope['session'].get('player_name')
 
@@ -91,37 +87,36 @@ class ChessConsumer(AsyncWebsocketConsumer):
             await self.handle_move(data)
         elif message_type == 'chat_message':
             await self.handle_chat_message(data)
-        elif message_type == 'peer_id':
-            await self.handle_peer_id(data)
+        elif message_type == 'video_signal':
+            await self.handle_video_signal(data)
 
-    async def handle_peer_id(self, data):
-        room_id = self.room_id
+    async def handle_video_signal(self, data):
         peer_id = data.get('peerId') 
 
-        if room_id in games and peer_id:
+        if self.room_id in games and peer_id:
             await self.channel_layer.group_send( 
                 self.room_group_name,
                 {
-                    'type': 'opponent_ready_for_call',
-                    'peer_id': peer_id, 
+                    'type': 'broadcast.video.signal',
+                    'peerId': peer_id,
+                    'sender': data.get('sender'),
                     'sender_channel_name': self.channel_name 
                 }
             )
 
     
     async def handle_move(self, data):
-        room_id = self.room_id
-        player_name = await self.get_player_name_from_session()
+        player_name = self.get_player_name_from_session()
 
-        if not room_id or room_id not in games:
+        if not self.room_id or self.room_id not in games:
             return
 
-        game = games[room_id]
+        game = games[self.room_id]
         if game.status != 'playing':
             return
 
         game.current_position = data['fen'] 
-        game.moves.append(data) 
+        game.moves.append(data['move']) 
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -129,9 +124,6 @@ class ChessConsumer(AsyncWebsocketConsumer):
                 'type': 'move_made',
                 'from': data['from'],
                 'to': data['to'],
-                'fen': data['fen'],
-                'move': data['move'],
-                'player': player_name,
                 'sender_channel_name': self.channel_name
             }
         )
@@ -144,17 +136,13 @@ class ChessConsumer(AsyncWebsocketConsumer):
             'type': 'move_made',
             'from': event['from'],
             'to': event['to'],
-            'fen': event['fen'],
-            'move': event['move'],
-            'player': event['player']
         }))
 
     async def handle_chat_message(self, data):
-        room_id = data['room']
         sender = data['sender']
         message = data['message']
 
-        if room_id in games:
+        if self.room_id in games:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -174,14 +162,15 @@ class ChessConsumer(AsyncWebsocketConsumer):
             'message': event['message'],
             'sender': event['sender']
         }))
-
-    async def opponent_ready_for_call(self, event):
+    
+    async def broadcast_video_signal(self, event):
         if self.channel_name == event['sender_channel_name']:
             return
-
+        
         await self.send(text_data=json.dumps({
-            'type': 'opponent_ready_for_call',
-            'peerId': event['peerId']
+            'type': 'video_signal',
+            'peerId': event['peerId'],
+            'sender': event['sender'],
         }))
 
     async def opponent_joined(self, event):
