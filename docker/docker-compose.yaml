@@ -16,12 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: kingsgambit_redis
-    ports:
-      - "6379:6379"
-
   backend:
     build:
       context: ../server # Correct path: go up one level, then into 'server'
@@ -38,14 +32,11 @@ services:
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
       - DATABASE_HOST=${DATABASE_HOST}
       - DATABASE_PORT=${DATABASE_PORT}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_SETTINGS_MODULE=kingsgambit_backend.settings
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
 
   peerserver:
     build:
