@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import Peer from 'peerjs';
 
 const VideoCall = ({ onPeerOpen, opponentPeerId }) => {

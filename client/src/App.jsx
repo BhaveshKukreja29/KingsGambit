@@ -1,19 +1,21 @@
-// client/src/App.jsx
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import MatchPage from './pages/MatchPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
-    <div className="App">
-      <main>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/match/:id" element={<MatchPage />} />
-        </Routes>
-      </main>
-    </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/match/:id" element={<MatchPage />} />
+      </Route>
+    </Routes>
   );
 }
 

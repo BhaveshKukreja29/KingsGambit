@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import GameInterface from '../components/GameInterface';
@@ -15,7 +15,7 @@ const MatchPage = () => {
   useEffect(() => {
     const fetchGameData = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/game-data/${id}`, {
+        const response = await axios.get(`http://localhost:8000/api/game-data/${id}`, {
           withCredentials: true 
         });
         
@@ -25,14 +25,13 @@ const MatchPage = () => {
             playerName: response.data.player_name,
             playerColor: response.data.player_color,
             opponentName: response.data.opponent_name,
-            waiting: response.data.waiting_for_opponent // Key mapping
+            waiting: response.data.waiting_for_opponent
         });
         setError(null);
       } catch (err) {
         const errorMsg = err.response ? err.response.data.error : 'Failed to load game data.';
         setError(errorMsg);
         console.error("Error fetching game data:", errorMsg);
-        // Redirect home on error
         if (err.response && (err.response.status === 404 || err.response.status === 403)) {
             setTimeout(() => navigate('/'), 4000);
         }
