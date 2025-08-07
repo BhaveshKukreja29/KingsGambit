@@ -4,11 +4,12 @@ import Chat from './Chat';
 import VideoCall from './VideoCall';
 import { Chess } from 'chess.js';
 
-const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialOpponentName }) => {
-    const [game, setGame] = useState(new Chess());
-    const [fen, setFen] = useState('start');
+const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialOpponentName, initialFen, initialMoves }) => {
+    const [game, setGame] = useState(new Chess(initialFen || 'start'));
+    const [fen, setFen] = useState(initialFen || 'start');
     const [status, setStatus] = useState('Connecting to game...');
-    const [moveHistory, setMoveHistory] = useState([]);
+    const [moveHistory, setMoveHistory] = useState(initialMoves || []);
+    
     const [chatMessages, setChatMessages] = useState([]);
     const [opponentName, setOpponentName] = useState(initialOpponentName);
     const [opponentPeerId, setOpponentPeerId] = useState(null);
@@ -16,16 +17,13 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
 
     useEffect(() => {
         if (!roomId) return;
-
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = window.location.host;
-        const socketUrl = `${wsProtocol}//${wsHost}/ws/match/${roomId}/`;
-
+        const socketUrl = `ws://localhost:8000/ws/match/${roomId}/`;
         socket.current = new WebSocket(socketUrl);
 
         socket.current.onopen = () => console.log('WebSocket connection established.');
         socket.current.onclose = () => setStatus('Connection Lost. Please refresh.');
 
+        socket.current.onerror = (error) => console.log('WebSocket Error:', error);
         socket.current.onmessage = (event) => {
             const data = JSON.parse(event.data);
 

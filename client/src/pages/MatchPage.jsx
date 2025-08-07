@@ -15,7 +15,7 @@ const MatchPage = () => {
   useEffect(() => {
     const fetchGameData = async () => {
       try {
-        const response = await axios.get(`api/game-data/${id}`, {
+        const response = await axios.get(`/api/game-data/${id}`, {
           withCredentials: true 
         });
         
@@ -25,7 +25,9 @@ const MatchPage = () => {
             playerName: response.data.player_name,
             playerColor: response.data.player_color,
             opponentName: response.data.opponent_name,
-            waiting: response.data.waiting_for_opponent
+            waiting: response.data.waiting_for_opponent,
+            initialFen: response.data.initial_position, 
+            initialMoves: response.data.moves_history
         });
         setError(null);
       } catch (err) {

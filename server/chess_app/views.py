@@ -97,22 +97,7 @@ def join_game(request):
 
         game.black_player = request.user
         game.status = 'playing'
-        game.save()
-
-        channel_layer = get_channel_layer()
-        room_group_name = f'game_{game.room_id}'
-        
-        async_to_sync(channel_layer.group_send)(
-            room_group_name,
-            {
-                'type': 'game_state_update',
-                'white_player': game.white_player.username,
-                'black_player': game.black_player.username,
-                'fen': game.fen_position,
-                'status': game.status,
-                'moves': game.moves,
-            }
-        )
+        game.save() 
 
         return JsonResponse({
             'message': 'Joined room successfully',

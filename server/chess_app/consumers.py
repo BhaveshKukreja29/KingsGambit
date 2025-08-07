@@ -127,10 +127,12 @@ class ChessConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         if self.user.username != event['sender']:
+            event['type'] = 'chat_message'
             await self.send(text_data=json.dumps(event))
 
     async def video_signal(self, event):
         if self.user.username != event['sender']:
+            event['type'] = 'video_signal'
             await self.send(text_data=json.dumps(event))
 
     @database_sync_to_async
@@ -140,12 +142,10 @@ class ChessConsumer(AsyncWebsocketConsumer):
         except Game.DoesNotExist:
             return None
 
-    @database_sync_to_async
-    def get_white_player(self, room_id):
-        game = self.get_game(room_id)
+    async def get_white_player(self, room_id):
+        game = await self.get_game(room_id)
         return game.white_player if game else None
 
-    @database_sync_to_async
-    def get_black_player(self, room_id):
-        game = self.get_game(room_id)
-        return game.black_player if game else None
+    async def get_black_player(self, room_id):
+        game = await self.get_game(room_id)
+        return game.black_player
