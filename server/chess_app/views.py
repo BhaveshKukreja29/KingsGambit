@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.middleware.csrf import get_token
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from .models import Game
 
 def check_auth_status(request):
@@ -96,6 +98,21 @@ def join_game(request):
         game.black_player = request.user
         game.status = 'playing'
         game.save()
+
+        channel_layer = get_channel_layer()
+        room_group_name = f'game_{game.room_id}'
+        
+        async_to_sync(channel_layer.group_send)(
+            room_group_name,
+            {
+                'type': 'game_state_update',
+                'white_player': game.white_player.username,
+                'black_player': game.black_player.username,
+                'fen': game.fen_position,
+                'status': game.status,
+                'moves': game.moves,
+            }
+        )
 
         return JsonResponse({
             'message': 'Joined room successfully',

@@ -20,8 +20,10 @@ const HomePage = () => {
         console.error('Error fetching CSRF token:', error);
       }
     };
-    fetchCsrfToken();
-  }, []); 
+    if (user) {
+      fetchCsrfToken();
+    }
+  }, [user]); 
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -87,7 +89,9 @@ const HomePage = () => {
                         required
                         className="input-field"
                     />
-                    <button type="submit">Join Game</button>
+                    <button type="submit" disabled={!csrfToken}>
+                      {csrfToken ? "Join Game" : "Loading..."}
+                    </button>
                 </form>
             </div>
         </div>

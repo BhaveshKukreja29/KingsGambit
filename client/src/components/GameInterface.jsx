@@ -17,7 +17,11 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
     useEffect(() => {
         if (!roomId) return;
 
-        socket.current = new WebSocket(`ws://localhost:8000/ws/match/${roomId}/`);
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.host;
+        const socketUrl = `${wsProtocol}//${wsHost}/ws/match/${roomId}/`;
+
+        socket.current = new WebSocket(socketUrl);
 
         socket.current.onopen = () => console.log('WebSocket connection established.');
         socket.current.onclose = () => setStatus('Connection Lost. Please refresh.');
@@ -67,7 +71,7 @@ const GameInterface = ({ roomId, playerName, playerColor, opponentName: initialO
                 socket.current.close();
             }
         };
-    }, [roomId, playerName, playerColor, game]);
+    }, [roomId, playerName, playerColor]);
     
     const updateStatus = useCallback((currentGame) => {
         let statusText = '';
