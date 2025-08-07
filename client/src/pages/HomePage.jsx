@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './HomePage.css';
+import { useAuth } from '../context/AuthContext';
+import './HomePage.css';  
 
 const HomePage = () => {
   const [joinRoomId, setJoinRoomId] = useState('');
@@ -10,15 +11,10 @@ const HomePage = () => {
 
   const [csrfToken, setCsrfToken] = useState(null); 
 
-  const apiClient = axios.create({
-      baseURL: 'http://localhost:8000',
-      withCredentials: true
-  });
-
   useEffect(() => {
     const fetchCsrfToken = async () => {
       try {
-        const response = await apiClient.get('api/get-csrf-token/');
+        const response = await axios.get('api/get-csrf-token/');
         setCsrfToken(response.data.csrfToken);
       } catch (error) {
         console.error('Error fetching CSRF token:', error);
@@ -34,7 +30,7 @@ const HomePage = () => {
       return;
     }
     try {
-      const response = await apiClient.post('/api/create-room/', {}, {
+      const response = await axios.post('/api/create-room/', {}, {
           headers: { 'X-CSRFToken': csrfToken }
       });
       if (response.data && response.data.room_id) {
@@ -52,13 +48,14 @@ const HomePage = () => {
       return;
     }
     try {
-      const response = await apiClient.post('api/join-game/', new URLSearchParams({
+      const response = await axios.post('api/join-game/', {
         'room_id': joinRoomId,
-        }), {
+      }, {
         headers: {
           'X-CSRFToken': csrfToken 
         }
       });
+        
       if (response.data && response.data.room_id) {
         navigate(`/match/${response.data.room_id}`);
       }

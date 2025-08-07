@@ -21,6 +21,9 @@ server/db.sqlite3
 server/static/
 server/migrations/
 !server/migrations/__init__.py 
+server/chess_app/__pycache__
+server/chess_app/migrations/__pycache__
+server/kingsgambit_backend/__pycache__
 
 # Django specific
 server/manage.pyc

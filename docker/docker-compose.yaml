@@ -18,10 +18,10 @@ services:
 
   backend:
     build:
-      context: ../server # Correct path: go up one level, then into 'server'
+      context: ../server
       dockerfile: Dockerfile.dev
     container_name: kingsgambit_backend
-    command: sh -c "python manage.py makemigrations && python manage.py migrate && daphne kingsgambit_backend.asgi:application -b 0.0.0.0 -p 8000"
+    command: sh -c "python3 manage.py migrate && daphne kingsgambit_backend.asgi:application -b 0.0.0.0 -p 8000"
     volumes:
       - ../server:/app
     ports:

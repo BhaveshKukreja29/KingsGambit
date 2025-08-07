@@ -1,181 +1,151 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-import uuid
-
-class Player:
-    def __init__(self, id, name):
-        self.id = id
-        self.name = name
-    def to_dict(self):
-        return {'id' : self.id, 'name' : self.name}
-
-class Game:
-    def __init__(self, white_player, black_player=None, moves=None, status='waiting', current_position='start'):
-        self.white = white_player
-        self.black = black_player
-        self.moves = moves if moves is not None else []
-        self.status = status
-        self.current_position = current_position
-    
-    def to_dict(self):
-        return {
-            'white': self.white.to_dict() if self.white else None,
-            'black': self.black.to_dict() if self.black else None,
-            'moves': self.moves,
-            'status': self.status,
-            'current_position': self.current_position
-        }
-    
-games = {}
+import chess
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import Game
 
 class ChessConsumer(AsyncWebsocketConsumer):
-    
-    def get_session_data(self):
-        return self.scope['session'].get('player_id'), self.scope['session'].get('player_name')
 
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'game_{self.room_id}'
+        self.user = self.scope['user']
 
-        player_id, player_name = self.get_session_data()
-
-        if not player_id or self.room_id not in games:
+        if not self.user.is_authenticated:
             await self.close()
             return
 
-        game = games[self.room_id]
+        game = await self.get_game(self.room_id)
+        if game is None or (self.user != game.white_player and self.user != game.black_player):
+            await self.close()
+            return
+        
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
 
-        player_color = 'white' if game.white and game.white.id == player_id else 'black'
-
-        await self.send(text_data=json.dumps({
-            'type': 'game_start',
-            'status': game.status,
-            'position': game.current_position,
-            'waiting_for_opponent': game.status == 'waiting',
-            'player_color': player_color
-        }))
-
-        if game.status == 'playing' and game.white and game.black:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'opponent_joined',
-                    'white_player_name': game.white.name, 
-                    'black_player_name': game.black.name, 
-                }
-            )
+        await self.broadcast_game_state()
 
     async def disconnect(self, close_code):
+        game = await self.get_game(self.room_id)
+        if game and game.status != 'finished':
+            game.status = 'finished'
+            # later we will implement winner
+            await game.asave()
+            await self.broadcast_game_state()
+
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-    
-    def get_player_name_from_session(self):
-        return self.scope['session'].get('player_name')
 
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
+        handler = getattr(self, f'handle_{message_type}', None)
+        if handler:
+            await handler(data)
 
-        if message_type == 'move':
-            await self.handle_move(data)
-        elif message_type == 'chat_message':
-            await self.handle_chat_message(data)
-        elif message_type == 'video_signal':
-            await self.handle_video_signal(data)
-
-    async def handle_video_signal(self, data):
-        peer_id = data.get('peerId') 
-
-        if self.room_id in games and peer_id:
-            await self.channel_layer.group_send( 
-                self.room_group_name,
-                {
-                    'type': 'broadcast.video.signal',
-                    'peerId': peer_id,
-                    'sender': data.get('sender'),
-                    'sender_channel_name': self.channel_name 
-                }
-            )
-
-    
     async def handle_move(self, data):
-        player_name = self.get_player_name_from_session()
-
-        if not self.room_id or self.room_id not in games:
+        game = await self.get_game(self.room_id)
+        if not game or game.status != 'playing':
             return
 
-        game = games[self.room_id]
-        if game.status != 'playing':
-            return
+        board = chess.Board(game.fen_position)
 
-        game.current_position = data['fen'] 
-        game.moves.append(data['move']) 
+        is_white_turn = board.turn == chess.WHITE
+        is_black_turn = board.turn == chess.BLACK
 
+        if (is_white_turn and self.user != game.white_player) or \
+           (is_black_turn and self.user != game.black_player):
+            return 
+
+        move_uci = data.get('from', '') + data.get('to', '')
+        move = chess.Move.from_uci(move_uci)
+
+        if move in board.legal_moves:
+            board.push(move)
+            game.fen_position = board.fen()
+            game.moves.append(move_uci)
+            
+            if board.is_checkmate() or board.is_stalemate() or board.is_insufficient_material():
+                game.status = 'finished'
+
+            await game.asave()
+            await self.broadcast_game_state()
+        else:
+            await self.send(text_data=json.dumps({'type': 'error', 'message': 'Illegal move'}))
+
+    async def handle_chat_message(self, data):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'move_made',
-                'from': data['from'],
-                'to': data['to'],
-                'sender_channel_name': self.channel_name
+                'type': 'chat.message',
+                'message': data.get('message'),
+                'sender': self.user.username,
             }
         )
 
-    async def move_made(self, event):
-        if self.channel_name == event['sender_channel_name']:
+    async def handle_video_signal(self, data):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'video.signal',
+                'peerId': data.get('peerId'),
+                'sender': self.user.username,
+            }
+        )
+
+    async def broadcast_game_state(self):
+        game = await self.get_game(self.room_id)
+        if not game:
             return
 
-        await self.send(text_data=json.dumps({
-            'type': 'move_made',
-            'from': event['from'],
-            'to': event['to'],
-        }))
+        game_state = {
+            'type': 'game_state_update',
+            'white_player': game.white_player.username if game.white_player else None,
+            'black_player': game.black_player.username if game.black_player else None,
+            'fen': game.fen_position,
+            'status': game.status,
+            'moves': game.moves,
+        }
+        await self.channel_layer.group_send(
+            self.room_group_name, game_state
+        )
 
-    async def handle_chat_message(self, data):
-        sender = data['sender']
-        message = data['message']
-
-        if self.room_id in games:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type' : 'chat_message',
-                    'message' : message,
-                    'sender' : sender,
-                    'sender_channel_name' : self.channel_name
-                }
-            )
+    async def game_state_update(self, event):
+        player_color = None
+        if self.user == await self.get_white_player(self.room_id):
+            player_color = 'white'
+        elif self.user == await self.get_black_player(self.room_id):
+            player_color = 'black'
+        
+        event['player_color'] = player_color
+        await self.send(text_data=json.dumps(event))
 
     async def chat_message(self, event):
-        if self.channel_name == event['sender_channel_name']:
-            return 
+        if self.user.username != event['sender']:
+            await self.send(text_data=json.dumps(event))
 
-        await self.send(text_data=json.dumps({
-            'type': 'chat_message',
-            'message': event['message'],
-            'sender': event['sender']
-        }))
-    
-    async def broadcast_video_signal(self, event):
-        if self.channel_name == event['sender_channel_name']:
-            return
-        
-        await self.send(text_data=json.dumps({
-            'type': 'video_signal',
-            'peerId': event['peerId'],
-            'sender': event['sender'],
-        }))
+    async def video_signal(self, event):
+        if self.user.username != event['sender']:
+            await self.send(text_data=json.dumps(event))
 
-    async def opponent_joined(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'opponent_joined',
-            'white_player_name': event['white_player_name'],
-            'black_player_name': event['black_player_name']
-        }))
+    @database_sync_to_async
+    def get_game(self, room_id):
+        try:
+            return Game.objects.select_related('white_player', 'black_player').get(room_id=room_id)
+        except Game.DoesNotExist:
+            return None
+
+    @database_sync_to_async
+    def get_white_player(self, room_id):
+        game = self.get_game(room_id)
+        return game.white_player if game else None
+
+    @database_sync_to_async
+    def get_black_player(self, room_id):
+        game = self.get_game(room_id)
+        return game.black_player if game else None

@@ -1,121 +1,136 @@
+import json
 from django.http import JsonResponse
-import uuid
-from .consumers import Player, Game, games
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.db import IntegrityError
 from django.middleware.csrf import get_token
+from .models import Game
+
+def check_auth_status(request):
+    if request.user.is_authenticated:
+        return JsonResponse({
+            'isAuthenticated': True,
+            'username': request.user.username,
+        }, status=200)
+    else:
+        return JsonResponse({'isAuthenticated': False}, status=401)
+
+def register_user(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        if not username or not password:
+            return JsonResponse({'error': 'Username and password are required.'}, status=400)
+
+        try:
+            user = User.objects.create_user(username=username, password=password)
+            login(request, user)
+            return JsonResponse({'username': user.username}, status=201)
+        except IntegrityError:
+            return JsonResponse({'error': 'Username already exists'}, status=400)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def login_user(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return JsonResponse({'username': user.username}, status=200)
+        else:
+            return JsonResponse({'error': 'Invalid username or password'}, status=400)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def logout_user(request):
+    if request.method == 'POST':
+        logout(request)
+        return JsonResponse({'message': 'Logged out successfully'}, status=200)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def create_room(request):
-    if request.method == 'POST':
-        player_name = request.POST.get('player_name')
-        if not player_name:
-            return JsonResponse({'error': 'Player name is required'}, status=400)
-
-        room_id = str(uuid.uuid4())[:8]
-        player_id = str(uuid.uuid4())
-
-        white_player = Player(id=player_id, name=player_name)
-        games[room_id] = Game(
-            white_player=white_player,
-            black_player=None,
-            moves=[],
-            status='waiting',
-            current_position='start'
-        )
-
-        request.session['player_id'] = player_id
-        request.session['room_id'] = room_id 
-        request.session['player_name'] = player_name
-        request.session.save()
-
+    if request.method == 'POST' and request.user.is_authenticated:
+        game = Game.objects.create(white_player=request.user)
         return JsonResponse({
             'message': 'Room created successfully',
-            'room_id': room_id,
-            'player_id': player_id, 
-            'player_name': player_name
+            'room_id': game.room_id,
         })
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    return JsonResponse({'error': 'Invalid request or not authenticated'}, status=405)
 
 def join_game(request):
-    if request.method == 'POST':
-        room_id = request.POST.get('room_id')
-        player_name = request.POST.get('player_name')
+    if request.method == 'POST' and request.user.is_authenticated:
+        try:
+            data = json.loads(request.body)
+            room_id = data.get('room_id')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-        if not room_id or not player_name:
-            return JsonResponse({'error': 'Room ID and player name are required'}, status=400)
+        if not room_id:
+            return JsonResponse({'error': 'Room ID is required'}, status=400)
 
-        if room_id not in games:
-            return JsonResponse({'error': 'Game room not found'}, status=404)
+        try:
+            game = Game.objects.get(room_id=room_id)
+        except Game.DoesNotExist:
+            return JsonResponse({'error': 'This game does not exist'}, status=404)
+        
+        if game.white_player == request.user or game.black_player == request.user:
+            return JsonResponse({'room_id': game.room_id, 'message': 'Rejoining game.'})
 
-        game = games[room_id]
-
-        # Rejoin logic
-        player_id_in_session = request.session.get('player_id')
-        if player_id_in_session:
-            if (game.white and game.white.id == player_id_in_session) or (game.black and game.black.id == player_id_in_session):
-                return JsonResponse({
-                    'message': 'Already in this game',
-                    'room_id': room_id,
-                    'player_id': player_id_in_session,
-                    'player_name': request.session.get('player_name')
-                })
-
-        if game.black is not None:
+        if game.black_player is not None:
             return JsonResponse({'error': 'This game is already full'}, status=400)
 
-        player_id = str(uuid.uuid4())
-        black_player = Player(id=player_id, name=player_name)
-        game.black = black_player
+        game.black_player = request.user
         game.status = 'playing'
-
-        # Set session variables for the joining player
-        request.session['player_id'] = player_id
-        request.session['room_id'] = room_id
-        request.session['player_name'] = player_name
-        request.session.save()
+        game.save()
 
         return JsonResponse({
             'message': 'Joined room successfully',
-            'room_id': room_id,
-            'player_id': player_id,
-            'player_name': player_name
+            'room_id': game.room_id,
         })
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    return JsonResponse({'error': 'Invalid request or not authenticated'}, status=405)
 
 def game_data(request, room_id):
-    if room_id not in games:
-        return JsonResponse({'error': 'Game room not found'}, status=404)
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+    
+    try:
+        game = Game.objects.get(room_id=room_id)
+    except Game.DoesNotExist:
+        return JsonResponse({'error': 'Game not found'}, status=404)
 
-    game = games[room_id]
-    player_id = request.session.get('player_id')
-    player_name = request.session.get('player_name')
-
-    is_player_in_game = False
-    player_color = None
-    opponent_name = None
-
-    if game.white and game.white.id == player_id:
-        is_player_in_game = True
-        player_color = 'white'
-        opponent_name = game.black.name if game.black else None
-    elif game.black and game.black.id == player_id:
-        is_player_in_game = True
-        player_color = 'black'
-        opponent_name = game.white.name
-
-    if not is_player_in_game:
+    if request.user != game.white_player and request.user != game.black_player:
         return JsonResponse({'error': 'You are not authorized to view this game'}, status=403)
 
+    if request.user == game.white_player:
+        player_color = 'white'
+        opponent_name = game.black_player.username if game.black_player else None
+    else:
+        player_color = 'black'
+        opponent_name = game.white_player.username if game.white_player else None
+
     return JsonResponse({
-        'room_id': room_id,
+        'room_id': game.room_id,
         'player_color': player_color,
-        'player_name': player_name,
+        'player_name': request.user.username,
         'opponent_name': opponent_name,
         'waiting_for_opponent': game.status == 'waiting',
-        'initial_position': game.current_position,
+        'initial_position': game.fen_position,
         'moves_history': game.moves
     })
 
 def get_csrf_token(request):
     return JsonResponse({'csrfToken': get_token(request)})
-

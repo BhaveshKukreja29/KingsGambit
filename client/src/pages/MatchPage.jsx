@@ -15,7 +15,7 @@ const MatchPage = () => {
   useEffect(() => {
     const fetchGameData = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/game-data/${id}`, {
+        const response = await axios.get(`api/game-data/${id}`, {
           withCredentials: true 
         });
         

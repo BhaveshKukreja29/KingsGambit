@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -7,17 +7,35 @@ const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [formError, setFormError] = useState('');
+    const [csrfToken, setCsrfToken] = useState('');
     const navigate = useNavigate();
     const { login } = useAuth();
+
+    useEffect(() => {
+        const fetchCsrfToken = async () => {
+            try {
+                const { data } = await axios.get('/api/get-csrf-token/', { withCredentials: true });
+                setCsrfToken(data.csrfToken);
+            } catch (error) {
+                console.error('Could not fetch CSRF token', error);
+                setFormError('Could not connect to the server. Please try again later.');
+            }
+        };
+        fetchCsrfToken();
+    }, []);
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setFormError('');
         try {
-            const response = await axios.post("/api/login/", {
-                username,
-                password,
-            });
+            const response = await axios.post(
+                "/api/login/", 
+                { username, password },
+                {
+                    headers: { 'X-CSRFToken': csrfToken },
+                    withCredentials: true
+                }
+            );
             login({ username: response.data.username });
             navigate('/');
         } catch (error) {
