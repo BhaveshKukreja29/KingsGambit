@@ -1,0 +1,50 @@
+.lobby-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+}
+.lobby-box {
+    background-color: #374151;
+    padding: 40px;
+    border-radius: 12px;
+    width: 400px;
+}
+.status-text {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    color: #D1D5DB;
+}
+.player-card {
+    background-color: #4B5563;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+.player-card h3 {
+    margin: 0 0 0.5rem 0;
+}
+.ready-status {
+    font-style: italic;
+    color: #9CA3AF;
+}
+.ready-status.ready {
+    color: #34D399;
+    font-weight: bold;
+}
+.lobby-actions button {
+    margin-top: 1rem;
+    width: 100%;
+}
+.copy-link-input {
+    width: calc(100% - 24px);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border: 2px solid #4B5563;
+    border-radius: 6px;
+    background-color: #1F2937;
+    color: #F3F4F6;
+    text-align: center;
+}

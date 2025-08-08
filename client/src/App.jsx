@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
+import LobbyPage from './pages/LobbyPage'
 import MatchPage from './pages/MatchPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -13,6 +14,7 @@ function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomePage />} />
+        <Route path='/lobby/:id' element={<LobbyPage />} />
         <Route path="/match/:id" element={<MatchPage />} />
       </Route>
     </Routes>

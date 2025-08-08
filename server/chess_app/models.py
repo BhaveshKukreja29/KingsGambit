@@ -18,6 +18,9 @@ class Game(models.Model):
     ]
     
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='waiting')
+    
+    white_player_ready = models.BooleanField(default=False)
+    black_player_ready = models.BooleanField(default=False)
 
     moves = models.JSONField(default=list)
 

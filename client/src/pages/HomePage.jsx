@@ -36,7 +36,7 @@ const HomePage = () => {
           headers: { 'X-CSRFToken': csrfToken }
       });
       if (response.data && response.data.room_id) {
-        navigate(`/match/${response.data.room_id}`);
+        navigate(`/lobby/${response.data.room_id}`);
       }
     } catch (error) {
       console.error('Error creating room:', error.response ? error.response.data : error.message);
@@ -59,7 +59,7 @@ const HomePage = () => {
       });
         
       if (response.data && response.data.room_id) {
-        navigate(`/match/${response.data.room_id}`);
+        navigate(`/lobby/${response.data.room_id}`);
       }
     } catch (error) {
       console.error('Error joining room:', error.response ? error.response.data : error.message);

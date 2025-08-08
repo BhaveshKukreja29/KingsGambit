@@ -96,14 +96,47 @@ def join_game(request):
             return JsonResponse({'error': 'This game is already full'}, status=400)
 
         game.black_player = request.user
-        game.status = 'playing'
+        # game.status = 'playing'
         game.save() 
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'lobby_{game.room_id}',
+            {
+                'type': 'lobby_state_update',
+                'whitePlayer': game.white_player.username if game.white_player else None,
+                'blackPlayer': game.black_player.username if game.black_player else None,
+                'whitePlayerReady': game.white_player_ready,
+                'blackPlayerReady': game.black_player_ready,
+            }
+        )
 
         return JsonResponse({
             'message': 'Joined room successfully',
             'room_id': game.room_id,
         })
     return JsonResponse({'error': 'Invalid request or not authenticated'}, status=405)
+
+def lobby_data(request, room_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+    
+    try:
+        game = Game.objects.get(room_id=room_id)
+    except Game.DoesNotExist:
+        return JsonResponse({'error': 'Game not found'}, status=404)
+
+    if request.user != game.white_player and request.user != game.black_player:
+        return JsonResponse({'error': 'You are not authorized to view this game'}, status=403)
+
+    return JsonResponse({
+        'roomId': game.room_id,
+        'whitePlayer': game.white_player.username if game.white_player else None,
+        'blackPlayer': game.black_player.username if game.black_player else None,
+        'isUserWhite': request.user == game.white_player,
+        'whitePlayerReady': game.white_player_ready,
+        'blackPlayerReady': game.black_player_ready
+    })
 
 def game_data(request, room_id):
     if not request.user.is_authenticated:
