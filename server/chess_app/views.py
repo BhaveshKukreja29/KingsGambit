@@ -96,7 +96,6 @@ def join_game(request):
             return JsonResponse({'error': 'This game is already full'}, status=400)
 
         game.black_player = request.user
-        # game.status = 'playing'
         game.save() 
 
         channel_layer = get_channel_layer()

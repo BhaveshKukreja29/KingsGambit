@@ -67,35 +67,55 @@ const HomePage = () => {
   };
 
   return (
-        <div className="home-container">
-            <header className="home-header">
-                {user && <span>Welcome, {user.username}</span>}
-                <button onClick={logout} className="logout-btn">Logout</button>
-            </header>
-            
-            <h2>Create New Game</h2>
-            <form onSubmit={handleCreateRoom}>
-                <button type="submit">Create Game</button>
-            </form>
+      <div className="home-page-container">
+          <header className="home-header">
+                {user && (
+                    <span className="welcome-text">
+                        Welcome, <strong>{user.username}</strong>
+                    </span>
+                )}
+                <button onClick={logout} className="logout-btn">
+                    Logout
+                </button>
+          </header>
 
-            <div className="join-section">
-                <h3>Or Join Existing Game</h3>
-                <form onSubmit={handleJoinRoom}>
-                    <input
-                        type="text"
-                        placeholder="Enter room ID"
-                        value={joinRoomId}
-                        onChange={(e) => setJoinRoomId(e.target.value)}
-                        required
-                        className="input-field"
-                    />
-                    <button type="submit" disabled={!csrfToken}>
-                      {csrfToken ? "Join Game" : "Loading..."}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
+          <main className="home-content">
+              <img src="/logo.svg" alt="King's Gambit Logo" className="logo-image" />
+
+              <div className="game-options-card">
+                  <form onSubmit={handleCreateRoom}>
+                      <button
+                          type="submit"
+                          className="action-btn"
+                          disabled={!csrfToken}
+                      >
+                          {csrfToken ? "Create New Game" : "Loading..."}
+                      </button>
+                  </form>
+
+                  <div className="divider">OR</div>
+
+                  <form onSubmit={handleJoinRoom}>
+                      <input
+                          type="text"
+                          placeholder="Enter Room ID"
+                          value={joinRoomId}
+                          onChange={(e) => setJoinRoomId(e.target.value)}
+                          required
+                          className="input-field"
+                      />
+                      <button
+                          type="submit"
+                          className="action-btn"
+                          disabled={!csrfToken}
+                      >
+                          {csrfToken ? "Join Game" : "Loading..."}
+                      </button>
+                  </form>
+              </div>
+          </main>
+      </div>
+  );
 };
 
 export default HomePage;

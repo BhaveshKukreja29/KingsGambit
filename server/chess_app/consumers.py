@@ -97,7 +97,6 @@ class ChessConsumer(AsyncWebsocketConsumer):
         game = await self.get_game(self.room_id)
         if game and game.status != 'finished':
             game.status = 'finished'
-            # later we will implement winner
             await game.asave()
             await self.broadcast_game_state()
 

@@ -9,6 +9,7 @@ const LobbyPage = () => {
     const [lobbyData, setLobbyData] = useState(null);
     const [error, setError] = useState('');
     const [isReady, setIsReady] = useState(false);
+    const [copied, setCopied] = useState(false);
     const socket = useRef(null);
 
     useEffect(() => {
@@ -68,46 +69,60 @@ const LobbyPage = () => {
         return "Waiting for players to be ready...";
     };
 
-    const renderPlayerCard = (playerName, isReady) => (
-        <div className="player-card">
-            <h3>{playerName  || "Empty Slot"}</h3>
-            {playerName && (
-                <p className={`ready-status ${isReady ? 'ready' : ''}`}>
-                    {isReady ? 'Ready' : 'Not Ready'}
-                </p>
-            )}
-        </div>
-    );
+    const handleCopyClick = () => {
+        navigator.clipboard.writeText(roomId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000); 
+    };
 
     if (error) return <div className="lobby-container"><h1>Error: {error}</h1></div>;
     if (!lobbyData) return <div className="lobby-container"><h1>Loading...</h1></div>;
 
     return (
-        <div className="lobby-container">
-            <div className="lobby-box">
+        <div className="lobby-page-container">
+            <div className="lobby-card">
                 <h2>Game Lobby</h2>
                 <p className="status-text">{getStatusText()}</p>
 
-                {renderPlayerCard(lobbyData.whitePlayer, lobbyData.whitePlayerReady)}
-
-                {lobbyData.blackPlayer ? (
-                    renderPlayerCard(lobbyData.blackPlayer, lobbyData.blackPlayerReady)
-                ) : (
+                <div className="players-container">
                     <div className="player-card">
-                        <h3>Waiting for Opponent...</h3>
-                        <input
-                            readOnly
-                            type="text"
-                            value={roomId}
-                            className="copy-link-input"
-                            onClick={(e) => navigator.clipboard.writeText(e.target.value)}
-                        />
+                        <h3>{lobbyData.whitePlayer}</h3>
+                        <p className={`ready-status ${lobbyData.whitePlayerReady ? 'ready' : ''}`}>
+                            {lobbyData.whitePlayerReady ? 'Ready' : 'Not Ready'}
+                        </p>
                     </div>
-                )}
+
+                    {lobbyData.blackPlayer ? (
+                        <div className="player-card">
+                            <h3>{lobbyData.blackPlayer}</h3>
+                            <p className={`ready-status ${lobbyData.blackPlayerReady ? 'ready' : ''}`}>
+                                {lobbyData.blackPlayerReady ? 'Ready' : 'Not Ready'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="player-card waiting">
+                            <h3>Waiting for Opponent</h3>
+                            <p className="waiting-text">Share the ID to invite someone.</p>
+                            <div className="room-id-container">
+                                <span className="room-id-text">{roomId}</span>
+                                <button
+                                    onClick={handleCopyClick}
+                                    className={`copy-btn ${copied ? 'copied' : ''}`}
+                                >
+                                    {copied ? 'Copied!' : 'Copy'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <div className="lobby-actions">
                     {lobbyData.blackPlayer && (
-                        <button onClick={handleReadyClick} disabled={isReady}>
+                        <button
+                            onClick={handleReadyClick}
+                            disabled={isReady}
+                            className="ready-btn"
+                        >
                             {isReady ? 'Waiting for Opponent' : 'Ready to Play'}
                         </button>
                     )}

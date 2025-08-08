@@ -1,75 +1,164 @@
-/*wrote by me after revisiting week 8 with html css in cs50x*/
-body {
-    margin: 0;
+.home-page-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    width: 100%;
+    padding: 2rem;
+    box-sizing: border-box;
     background-color: #1F2937;
     color: #F3F4F6;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    padding: 16px;
 }
 
-img {
-    margin-top: 50px;
-    width: 400px;
-    height: auto;
-    margin-bottom: 24px;
+.home-header {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    margin-bottom: auto;
 }
 
-.input-field {
-    width: 230px;
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    border: 2px solid #374151;
+.user-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.welcome-text {
+    color: white;
+    font-size: 1.6rem;
+}
+
+.welcome-text strong {
+    color: white;
+    font-weight: 500;
+}
+
+.logout-btn {
+
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+    color: white;
+    background-color: #ba1515;
+    border: none;
     border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+    background-color: #630000;
+}
+
+.home-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: auto;
+}
+
+.logo-image {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    margin-bottom: 2rem;
+}
+
+.game-options-card {
     background-color: #374151;
-    color: #F3F4F6;
-    font-size: 14px;
-    transition: border-color 0.2s;
+    padding: 2rem 2.5rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    text-align: center;
 }
 
-.input-field:focus {
-    outline: none;
-    border-color: #60A5FA;
-}
-
-button {
-    width: 260px;
-    padding: 8px 16px;
-    font-size: 14px;
+.game-options-card .action-btn {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
     font-weight: 600;
     color: white;
     background-color: #60A5FA;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: background-color 0.2s;
 }
 
-button:hover {
+.game-options-card .action-btn:hover {
     background-color: #3B82F6;
-    transform: translateY(-1px);
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+.game-options-card .action-btn:disabled {
+    background-color: #4B5563;
+    cursor: not-allowed;
 }
 
-.join-section {
-    margin-top: 24px;
-    text-align: center;
-    padding: 20px;
-    background-color: #374151;
-    border-radius: 8px;
-    width: 260px;
-}
-
-.join-section h3 {
-    margin: 0 0 16px 0;
+.game-options-card .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    background-color: #4B5563;
+    border: 1px solid #4B5563;
+    border-radius: 6px;
     color: #F3F4F6;
-    font-size: 16px;
+    text-align: center;
+}
+
+.game-options-card .input-field:focus {
+    outline: none;
+    border-color: #60A5FA;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #9CA3AF;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #4B5563;
+}
+
+.divider:not(:empty)::before {
+    margin-right: .5em;
+}
+
+.divider:not(:empty)::after {
+    margin-left: .5em;
+}
+
+
+@media (max-width: 600px) {
+    .home-page-container {
+        padding: 1rem;
+        justify-content: space-between;
+    }
+    .home-header {
+        margin-bottom: 2rem;
+    }
+    .welcome-text {
+        display: none; 
+    }
+    .logo-image {
+        max-width: 400px;
+    }
+    .game-options-card {
+        padding: 1.5rem;
+    }
 }

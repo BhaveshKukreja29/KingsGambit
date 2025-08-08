@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import './AuthPage.css'
 
 const RegisterPage = () => {
     const [username, setUsername] = useState('');
@@ -55,9 +56,22 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="auth-container">
+    <div className="auth-container">
+        <div className="auth-visual">
+            <div className="visual-content-wrapper">
+                <h1>King's Gambit</h1>
+                <p>Where every move defines a legacy.</p>
+            </div>
+            <div className="visual-images">
+                <img src="/King.png" alt="King Piece" />
+                <img src="/Queen.png" alt="Queen Piece" />
+            </div>
+        </div>
+
+        <div className="auth-content">
             <form onSubmit={handleRegisterSubmit} className="auth-form">
                 <h2>Create Account</h2>
+                <p className="subtitle">Become the King of the board.</p>
                 <input
                     type="text"
                     placeholder="Username"
@@ -80,13 +94,16 @@ const RegisterPage = () => {
                     required
                 />
                 {formError && <p className="error-message">{formError}</p>}
-                <button type="submit">Register</button>
+                <button type="submit" disabled={!csrfToken}>
+                    {csrfToken ? "Register" : "Loading..."}
+                </button>
                 <p className="auth-link">
                     Already a King? <Link to="/login">Login</Link>
                 </p>
             </form>
         </div>
-    );
+    </div>
+);
 };
 
 export default RegisterPage;

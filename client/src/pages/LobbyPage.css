@@ -1,50 +1,149 @@
-.lobby-container {
+.lobby-page-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
-    text-align: center;
-}
-.lobby-box {
-    background-color: #374151;
-    padding: 40px;
-    border-radius: 12px;
-    width: 400px;
-}
-.status-text {
-    font-size: 1.25rem;
-    margin-bottom: 2rem;
-    color: #D1D5DB;
-}
-.player-card {
-    background-color: #4B5563;
+    min-height: 100vh;
     padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
+    box-sizing: border-box;
+    background-color: #1F2937;
+    position: relative;
+    overflow: hidden;
 }
-.player-card h3 {
+
+.lobby-card {
+    background-color: #374151;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    text-align: center;
+    z-index: 1;
+}
+
+.lobby-card h2 {
+    font-size: 2rem;
+    font-weight: 600;
     margin: 0 0 0.5rem 0;
 }
-.ready-status {
-    font-style: italic;
+
+.status-text {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
     color: #9CA3AF;
+    min-height: 24px;
 }
+
+.players-container {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.player-card {
+    flex: 1;
+    background-color: #4B5563;
+    padding: 1.5rem 1rem;
+    border-radius: 10px;
+}
+
+.player-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #F3F4F6;
+}
+
+.ready-status {
+    font-weight: 500;
+    color: #ff3737;
+}
+
 .ready-status.ready {
-    color: #34D399;
-    font-weight: bold;
+    color: #34D399; 
 }
-.lobby-actions button {
+
+.player-card.waiting {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(75, 85, 99, 0.5);
+    border: 2px dashed #4B5563;
+}
+
+.player-card.waiting .waiting-text {
+    font-size: 0.9rem;
+    color: #9CA3AF;
+    margin-top: 0.5rem;
+}
+
+.room-id-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #1F2937;
+    border-radius: 6px;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
     margin-top: 1rem;
     width: 100%;
+    box-sizing: border-box;
 }
-.copy-link-input {
-    width: calc(100% - 24px);
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    border: 2px solid #4B5563;
-    border-radius: 6px;
-    background-color: #1F2937;
+
+.room-id-text {
+    font-family: 'monospace';
+    font-size: 1rem;
     color: #F3F4F6;
-    text-align: center;
+}
+
+.copy-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background-color: #60A5FA;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 65px;
+}
+
+.copy-btn.copied {
+    background-color: #34D399;
+}
+
+.ready-btn {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    background-color: #34D399;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ready-btn:hover {
+    background-color: #16a34a;
+}
+
+.ready-btn:disabled {
+    background-color: #4B5563;
+    cursor: not-allowed;
+    color: #9CA3AF;
+}
+
+@media (max-width: 600px) {
+    .players-container {
+        flex-direction: column;
+    }
+    .lobby-card {
+        padding: 1.5rem;
+    }
 }
