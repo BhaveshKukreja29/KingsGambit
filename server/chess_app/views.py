@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import Game
+from ratelimit.decorators import ratelimit
 
 def check_auth_status(request):
     if request.user.is_authenticated:
@@ -18,6 +19,7 @@ def check_auth_status(request):
     else:
         return JsonResponse({'isAuthenticated': False}, status=401)
 
+@ratelimit(key='ip', rate='10/h', block=True)
 def register_user(request):
     if request.method == 'POST':
         try:
@@ -45,6 +47,7 @@ def register_user(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+@ratelimit(key='ip', rate='10/m', block=True)
 def login_user(request):
     if request.method == 'POST':
         try:
@@ -71,6 +74,7 @@ def logout_user(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+@ratelimit(key='user', rate='20/h', block=True)
 def create_room(request):
     if request.method == 'POST' and request.user.is_authenticated:
         game = Game.objects.create(white_player=request.user)
@@ -80,6 +84,7 @@ def create_room(request):
         })
     return JsonResponse({'error': 'Invalid request or not authenticated'}, status=405)
 
+@ratelimit(key='user', rate='30/h', block=True)
 def join_game(request):
     if request.method == 'POST' and request.user.is_authenticated:
         try:
