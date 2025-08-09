@@ -8,6 +8,8 @@ const RegisterPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [formError, setFormError] = useState('');
     const [csrfToken, setCsrfToken] = useState('');
     const navigate = useNavigate();
@@ -48,11 +50,20 @@ const RegisterPage = () => {
             navigate('/');
         } catch (error) {
             if (error.response && error.response.data) {
-                setFormError(error.response.data.error);
+                const errorData = error.response.data.error;
+                setFormError(Array.isArray(errorData) ? errorData.join(' ') : errorData);
             } else {
                 setFormError("An unexpected error occurred.");
             }
         }
+    };
+
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+        setShowConfirmPassword(!showConfirmPassword);
     };
 
     return (
@@ -79,20 +90,33 @@ const RegisterPage = () => {
                     onChange={(e) => setUsername(e.target.value)}
                     required
                 />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                />
+                <div className="password-input-container">
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <img 
+                        src={showPassword ? "/eye.png" : "/closeEye.png"} 
+                        alt="Toggle Password" onClick={togglePasswordVisibility}
+                    />
+                </div>
+                    
+                <div className="password-input-container">
+                    <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                    />
+                    <img 
+                        src={showConfirmPassword ? "/eye.png" : "/closeEye.png"} 
+                        alt="Toggle Password" onClick={toggleConfirmPasswordVisibility}
+                    />
+                </div>
                 {formError && <p className="error-message">{formError}</p>}
                 <button type="submit" disabled={!csrfToken}>
                     {csrfToken ? "Register" : "Loading..."}

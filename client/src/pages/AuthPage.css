@@ -153,3 +153,24 @@
         width: 100%;
     }
 }
+
+.password-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-container input {
+    width: 100%;
+    padding-right: 60px;
+    box-sizing: border-box;
+}
+
+.password-input-container img {
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    width: 35px;
+    height: 35px;
+    cursor: pointer;
+}

@@ -85,6 +85,10 @@ class ChessConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
         
+        if game.status == 'finished':
+            await self.close()
+            return
+        
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -94,12 +98,6 @@ class ChessConsumer(AsyncWebsocketConsumer):
         await self.broadcast_game_state()
 
     async def disconnect(self, close_code):
-        game = await self.get_game(self.room_id)
-        if game and game.status != 'finished':
-            game.status = 'finished'
-            await game.asave()
-            await self.broadcast_game_state()
-
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name

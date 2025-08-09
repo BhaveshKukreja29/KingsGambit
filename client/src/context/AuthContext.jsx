@@ -7,6 +7,22 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [csrfToken, setCsrfToken] = useState(null); 
+
+    useEffect(() => {
+        const fetchCsrfToken = async () => {
+        try {
+            const response = await axios.get('api/get-csrf-token/');
+            setCsrfToken(response.data.csrfToken);
+        } catch (error) {
+            console.error('Error fetching CSRF token:', error);
+        }
+        };
+        if (user) {
+        fetchCsrfToken();
+        }
+    }, [user]); 
+
     useEffect(() => {
         const checkUser = async () => {
             try {
@@ -29,7 +45,9 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await axios.post('/api/logout/');
+            await axios.post('/api/logout/', {}, {
+                headers: { 'X-CSRFToken': csrfToken }
+            });
             setUser(null);
         } catch (error) {
             console.error("Logout failed:", error);

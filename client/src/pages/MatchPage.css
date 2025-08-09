@@ -255,3 +255,50 @@ button.chat-send-btn:hover {
 ::-webkit-scrollbar-thumb:hover {
     background: #2563EB;
 }
+
+@media (max-width: 768px) {
+    body, html {
+        overflow: auto;
+    }
+
+    .game-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        height: auto;
+        min-height: 100vh;
+        padding: 8px;
+        gap: 16px;
+    }
+
+    .moves-section,
+    .chat-section {
+        display: none;
+    }
+
+    .right-section {
+        grid-row: 1;
+        height: auto;
+        gap: 0;
+    }
+
+    .board-section {
+        grid-row: 2;
+        min-width: 0;
+        justify-content: flex-start;
+        padding-top: 0;
+    }
+    
+    #board {
+        max-width: 100%;
+    }
+
+    .video-section {
+        height: auto;
+        padding: 0.5rem;
+    }
+
+    .video-container {
+        height: 110px; 
+        margin-bottom: 0.5rem;
+    }
+}

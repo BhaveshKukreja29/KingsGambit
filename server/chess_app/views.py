@@ -1,9 +1,10 @@
 import json
 from django.http import JsonResponse
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, password_validation
 from django.db import IntegrityError
 from django.middleware.csrf import get_token
+from django.core.exceptions import ValidationError
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import Game
@@ -28,6 +29,12 @@ def register_user(request):
 
         if not username or not password:
             return JsonResponse({'error': 'Username and password are required.'}, status=400)
+
+        try:
+            password_validation.validate_password(password)
+        except ValidationError as e:
+            return JsonResponse({'error': list(e.messages)}, status=400)
+
 
         try:
             user = User.objects.create_user(username=username, password=password)

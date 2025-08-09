@@ -41,6 +41,8 @@ services:
       - DATABASE_PORT=${DATABASE_PORT}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_SETTINGS_MODULE=kingsgambit_backend.settings
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     depends_on:
       db:
         condition: service_healthy

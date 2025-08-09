@@ -12,6 +12,11 @@ const LoginPage = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
 
+    const [showPassword, setShowPassword] = useState(false);
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
     useEffect(() => {
         const fetchCsrfToken = async () => {
             try {
@@ -72,13 +77,21 @@ const LoginPage = () => {
                         onChange={(e) => setUsername(e.target.value)}
                         required
                     />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
+                    <div className="password-input-container">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                        <img 
+                            src={showPassword ? "/eye.png" : "/closeEye.png"} 
+                            alt="Toggle Password" 
+                            onClick={togglePasswordVisibility}
+                        />
+                    </div>
+
                     {formError && <p className="error-message">{formError}</p>}
                     <button type="submit" disabled={!csrfToken}>
                         {csrfToken ? "Login" : "Loading..."}
