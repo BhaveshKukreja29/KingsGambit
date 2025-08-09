@@ -1,28 +1,4 @@
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: kingsgambit_db
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - db_data:/var/lib/postgresql/data/
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: "redis:alpine"
-    container_name: kingsgambit_redis
-    ports:
-      - "6379:6379"
-
-
   backend:
     build:
       context: ../server
@@ -34,21 +10,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_NAME=${DATABASE_NAME}
-      - DATABASE_USER=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-      - DATABASE_HOST=${DATABASE_HOST}
-      - DATABASE_PORT=${DATABASE_PORT}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY} 
       - DJANGO_SETTINGS_MODULE=kingsgambit_backend.settings
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis: 
-        condition: service_started
-
 
   peerserver:
     build:
@@ -56,6 +19,3 @@ services:
     container_name: kingsgambit_peerserver
     ports:
       - "9000:9000"
-
-volumes:
-  db_data:

@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import Game
-from ratelimit.decorators import ratelimit
+from django_ratelimit.decorators import ratelimit
 
 def check_auth_status(request):
     if request.user.is_authenticated:
