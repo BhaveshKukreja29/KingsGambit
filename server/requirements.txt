@@ -21,6 +21,7 @@ pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycparser==2.22
 pyOpenSSL==25.1.0
+pytest-django
 chess
 service-identity==24.2.0
 sqlparse==0.5.3
