@@ -8,7 +8,7 @@ const VideoCall = ({ onPeerOpen, opponentPeerId }) => {
   const localStreamRef = useRef(null);
   const currentCallRef = useRef(null);
   const [isVideoOn, setIsVideoOn] = useState(false);
-  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
   const initializeStream = useCallback(async () => {
@@ -21,6 +21,9 @@ const VideoCall = ({ onPeerOpen, opponentPeerId }) => {
       stream.getVideoTracks().forEach(track => {
         track.enabled = false;
       });
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = false;
+      })
       
       localStreamRef.current = stream;
       if (localVideoRef.current) {
