@@ -6,7 +6,6 @@ King's Gambit is a full-stack web application that allows two users to play ches
 
 The project is built with a focus on a clean, decoupled architecture and utilizes a modern technology stack including React, Django, WebSockets, and WebRTC, all containerized with Docker for easy setup and deployment.
 
----
 ### Video Demo 
 
 https://youtu.be/BYTizdoNZ0M
